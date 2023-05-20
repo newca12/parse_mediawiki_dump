@@ -37,7 +37,7 @@
 //!                 eprintln!("Error: {}", error);
 //!                 break;
 //!             }
-//!             Ok(page) => if page.namespace == 0 && match &page.format {
+//!             Ok(page) => if page.namespace == parse_mediawiki_dump::Namespace::Main && match &page.format {
 //!                 None => false,
 //!                 Some(format) => format == "text/x-wiki"
 //!             } && match &page.model {
@@ -96,7 +96,7 @@ pub enum Error {
     XmlReader(quick_xml::Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 /// Wikipedia namespace
 ///  see: https://en.wikipedia.org/wiki/Wikipedia:Namespace
 pub enum Namespace {
@@ -389,16 +389,18 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                                 None => return Err(Error::Format(parser.reader.buffer_position())),
                                 Some(_) => break,
                             },
-                            (namespace, Event::Start(event)) => if match_namespace(namespace) {
-                                match event.local_name() {
-                                    b"format" => RevisionChildElement::Format,
-                                    b"model" => RevisionChildElement::Model,
-                                    b"text" => RevisionChildElement::Text,
-                                    _ => RevisionChildElement::Unknown,
+                            (namespace, Event::Start(event)) => {
+                                if match_namespace(namespace) {
+                                    match event.local_name() {
+                                        b"format" => RevisionChildElement::Format,
+                                        b"model" => RevisionChildElement::Model,
+                                        b"text" => RevisionChildElement::Text,
+                                        _ => RevisionChildElement::Unknown,
+                                    }
+                                } else {
+                                    RevisionChildElement::Unknown
                                 }
-                            } else {
-                                RevisionChildElement::Unknown
-                            },
+                            }
                             _ => continue,
                         } {
                             RevisionChildElement::Format => {

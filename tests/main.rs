@@ -2,6 +2,8 @@
 // This is free software distributed under the terms specified in
 // the file LICENSE at the top-level directory of this distribution.
 
+use parse_mediawiki_dump::Namespace;
+
 extern crate parse_mediawiki_dump;
 
 const DUMP: &str = concat!(
@@ -16,7 +18,7 @@ const DUMP: &str = concat!(
     "</revision>",
     "</page>",
     "<page>",
-    "<ns>42</ns>",
+    "<ns>4</ns>",
     "<title>epsilon</title>",
     "<revision>",
     "<text>zeta</text>",
@@ -33,7 +35,7 @@ fn main() {
         Some(Ok(parse_mediawiki_dump::Page {
             format: Some(format),
             model: Some(model),
-            namespace: 0,
+            namespace: Namespace::Main,
             text,
             title,
         })) => format == "beta" && model == "gamma" && text == "delta" && title == "alpha",
@@ -43,7 +45,7 @@ fn main() {
         Some(Ok(parse_mediawiki_dump::Page {
             format: None,
             model: None,
-            namespace: 42,
+            namespace: Namespace::Wikipedia,
             text,
             title,
         })) => text == "zeta" && title == "epsilon",

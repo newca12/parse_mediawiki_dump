@@ -12,7 +12,7 @@
 
 [package]
 name = "parse_mediawiki_dump"
-version = "0.1.0"
+version = "0.1.1-beta"
 authors = ["Fredrik Portström <https://portstrom.com>"]
 description = "Parse XML dumps exported from Mediawiki"
 readme = "readme.md"
@@ -24,4 +24,4 @@ name = "main"
 [dependencies.quick-xml]
 version = "0.12"
 [dev-dependencies.bzip2]
-version = "0.3"
+version = "0.4.4"
