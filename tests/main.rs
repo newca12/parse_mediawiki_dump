@@ -2,7 +2,7 @@
 // This is free software distributed under the terms specified in
 // the file LICENSE at the top-level directory of this distribution.
 
-use parse_mediawiki_dump::Namespace;
+use parse_mediawiki_dump::schema::Namespace;
 
 extern crate parse_mediawiki_dump;
 

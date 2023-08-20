@@ -13,11 +13,15 @@
 [package]
 name = "parse_mediawiki_dump"
 version = "0.1.1-beta"
+edition = "2021"
 authors = ["Fredrik Portström <https://portstrom.com>"]
 description = "Parse XML dumps exported from Mediawiki"
 readme = "readme.md"
 license-file = "LICENSE"
 repository = "https://github.com/portstrom/parse_mediawiki_dump"
+
+[dependencies]
+serde = {version="1.0.183", features=["derive"]}
 
 [[example]]
 name = "main"

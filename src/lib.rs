@@ -25,6 +25,7 @@
 //! ```rust,no_run
 //! extern crate bzip2;
 //! extern crate parse_mediawiki_dump;
+//! use parse_mediawiki_dump::schema::Namespace;
 //!
 //! fn main() {
 //!     let file = std::fs::File::open("example.xml.bz2").unwrap();
@@ -37,7 +38,7 @@
 //!                 eprintln!("Error: {}", error);
 //!                 break;
 //!             }
-//!             Ok(page) => if page.namespace == parse_mediawiki_dump::Namespace::Main && match &page.format {
+//!             Ok(page) => if page.namespace == Namespace::Main && match &page.format {
 //!                 None => false,
 //!                 Some(format) => format == "text/x-wiki"
 //!             } && match &page.model {
@@ -58,13 +59,13 @@
 //! ```
 
 #![forbid(unsafe_code)]
-#![warn(missing_docs)]
 
 extern crate quick_xml;
 
+pub mod schema;
 use quick_xml::{events::Event, Reader};
+use schema::Namespace;
 use std::io::BufRead;
-
 enum PageChildElement {
     Ns,
     Revision,
@@ -94,120 +95,6 @@ pub enum Error {
 
     /// Error from the XML reader.
     XmlReader(quick_xml::Error),
-}
-
-#[derive(Debug, PartialEq)]
-/// Wikipedia namespace
-///  see: https://en.wikipedia.org/wiki/Wikipedia:Namespace
-pub enum Namespace {
-    /// Can be used to link directly to a file, rather than to the file description page.
-    Media,
-    /// The Special: namespace consists of pages (called special pages) that are created by the
-    /// software on demand, such as Special:RecentChanges
-    Special,
-    /// All encyclopedia articles, lists, disambiguation pages, and encyclopedia redirects.
-    /// Sometimes referred to as "mainspace" or "Article".
-    Main,
-    /// Talk namespaces are used to discuss changes to pages
-    Talk,
-    /// Contains user pages and other pages created by individual users for their own personal use
-    User,
-    /// Used to leave messages for a particular user
-    UserTalk,
-    /// Consists of administration pages with information or discussion about Wikipedia
-    Wikipedia,
-    /// Talk page for Wikipedia pages
-    WikipediaTalk,
-    /// Administration pages in which all of Wikipedia's media content resides
-    File,
-    /// Talk page for File pages
-    FileTalk,
-    /// Contains text to be displayed in certain places in the interface
-    MediaWiki,
-    /// Talk page for MediaWiki page
-    MediaWikiTalk,
-    /// Used to store templates, which contain Wiki markup intended for inclusion on multiple pages
-    Template,
-    /// Talk page for template page
-    TemplateTalk,
-    /// Consists of "how-to" and information pages whose titles begin with the prefix Help:, such as Help:Link.
-    Help,
-    /// Talk page for help pages
-    HelpTalk,
-    /// Categories are normally found at the bottom of an article page. Clicking a category name
-    /// brings up a category page listing the articles (or other pages) that have been added to
-    /// that particular category
-    Category,
-    /// Talk page for category
-    CategoryTalk,
-    /// Portals serve as enhanced "main pages" for specific broad subjects.
-    Portal,
-    /// Talk page for portal
-    PortalTalk,
-    /// Drafts are pages in the Draft namespace where new articles may be created and developed,
-    /// for a limited period of time.
-    Draft,
-    /// Talk page for draft pages
-    DraftTalk,
-    /// The TimedMediaHandler extension allows you to display audio and video files in wiki pages
-    TimedText,
-    /// Talk page for timed text
-    TimedTextTalk,
-    /// Where Wikipedia Lua source code is stored
-    Module,
-    /// Talk page for Module
-    ModuleTalk,
-    /// Depreciated by Wikipedia
-    /// A JavaScript program and/or a CSS snippet that can be enabled simply by checking an option
-    /// in a Wikipedia user's preferences
-    Gadget,
-    /// Depreciated by Wikipedia
-    /// Talk page for gadgets
-    GadgetTalk,
-    /// Depreciated by Wikipedia
-    /// Definition of gadgets
-    GadgetDefinition,
-    /// Depreciated by Wikipedia
-    /// Talk page for gadgets
-    GadgetDefinitionTalk,
-}
-
-impl Namespace {
-    fn from_i32(id: i32) -> Option<Self> {
-        match id {
-            -2 => Some(Namespace::Media),
-            -1 => Some(Namespace::Special),
-            0 => Some(Namespace::Main),
-            1 => Some(Namespace::Talk),
-            2 => Some(Namespace::User),
-            3 => Some(Namespace::UserTalk),
-            4 => Some(Namespace::Wikipedia),
-            5 => Some(Namespace::WikipediaTalk),
-            6 => Some(Namespace::File),
-            7 => Some(Namespace::FileTalk),
-            8 => Some(Namespace::MediaWiki),
-            9 => Some(Namespace::MediaWikiTalk),
-            10 => Some(Namespace::Template),
-            11 => Some(Namespace::TemplateTalk),
-            12 => Some(Namespace::Help),
-            13 => Some(Namespace::HelpTalk),
-            14 => Some(Namespace::Category),
-            15 => Some(Namespace::CategoryTalk),
-            100 => Some(Namespace::Portal),
-            101 => Some(Namespace::PortalTalk),
-            118 => Some(Namespace::Draft),
-            119 => Some(Namespace::DraftTalk),
-            710 => Some(Namespace::TimedText),
-            711 => Some(Namespace::TimedTextTalk),
-            828 => Some(Namespace::Module),
-            829 => Some(Namespace::ModuleTalk),
-            2300 => Some(Namespace::Gadget),
-            2301 => Some(Namespace::GadgetTalk),
-            2302 => Some(Namespace::GadgetDefinition),
-            2303 => Some(Namespace::GadgetDefinitionTalk),
-            _ => None,
-        }
-    }
 }
 
 /// Parsed page.
@@ -363,15 +250,10 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                 }
                 _ => continue,
             } {
-                PageChildElement::Ns => match parse_text(parser, &namespace)?.parse() {
+                PageChildElement::Ns => match parse_text(parser, &namespace)?.parse::<i32>() {
                     Err(_) => return Err(Error::Format(parser.reader.buffer_position())),
                     Ok(value) => {
-                        match Namespace::from_i32(value) {
-                            Some(ns) => namespace = Some(ns),
-                            None => {
-                                return Err(Error::NotSupported(parser.reader.buffer_position()))
-                            }
-                        }
+                        namespace = Some(Namespace::from(value));
                         continue;
                     }
                 },
