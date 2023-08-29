@@ -1,10 +1,11 @@
 // Copyright 2018 Fredrik Portström <https://portstrom.com>
+// Copyright (c) 2023 Olivier ROLAND
 // This is free software distributed under the terms specified in
 // the file LICENSE at the top-level directory of this distribution.
 
-use parse_mediawiki_dump::schema::Namespace;
+use parse_mediawiki_dump_reboot::schema::Namespace;
 
-extern crate parse_mediawiki_dump;
+extern crate parse_mediawiki_dump_reboot;
 
 const DUMP: &str = concat!(
     r#"<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.10/">"#,
@@ -30,9 +31,9 @@ const DUMP: &str = concat!(
 #[test]
 fn main() {
     let mut parser =
-        parse_mediawiki_dump::parse(std::io::BufReader::new(std::io::Cursor::new(DUMP)));
+        parse_mediawiki_dump_reboot::parse(std::io::BufReader::new(std::io::Cursor::new(DUMP)));
     assert!(match parser.next() {
-        Some(Ok(parse_mediawiki_dump::Page {
+        Some(Ok(parse_mediawiki_dump_reboot::Page {
             format: Some(format),
             model: Some(model),
             namespace: Namespace::Main,
@@ -42,7 +43,7 @@ fn main() {
         _ => false,
     });
     assert!(match parser.next() {
-        Some(Ok(parse_mediawiki_dump::Page {
+        Some(Ok(parse_mediawiki_dump_reboot::Page {
             format: None,
             model: None,
             namespace: Namespace::Wikipedia,

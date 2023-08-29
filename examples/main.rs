@@ -3,7 +3,7 @@
 // the file LICENSE at the top-level directory of this distribution.
 
 extern crate bzip2;
-extern crate parse_mediawiki_dump;
+extern crate parse_mediawiki_dump_reboot;
 
 fn main() {
     let mut args = std::env::args();
@@ -29,7 +29,7 @@ fn main() {
 }
 
 fn parse(source: impl std::io::BufRead) {
-    for result in parse_mediawiki_dump::parse(source) {
+    for result in parse_mediawiki_dump_reboot::parse(source) {
         match result {
             Err(error) => {
                 eprintln!("Error: {}", error);

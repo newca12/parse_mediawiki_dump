@@ -1,5 +1,6 @@
 <!--
 Copyright 2018 Fredrik Portström <https://portstrom.com>
+Copyright (c) 2023 Olivier ROLAND
 This is free software distributed under the terms specified in
 the file LICENSE at the top-level directory of this distribution.
 -->
@@ -7,8 +8,6 @@ the file LICENSE at the top-level directory of this distribution.
 # Parse Mediawiki dump
 
 Parse XML dumps exported from Mediawiki.
-
-![Parse Wiki Text](https://portstrom.com/parse_wiki_text.svg)
 
 This module parses [XML dumps](https://www.mediawiki.org/wiki/Help:Export) exported from Mediawiki, providing each page from the dump through an iterator. This is useful for parsing the [dumps from Wikipedia and other Wikimedia projects](https://dumps.wikimedia.org).
 

@@ -1,4 +1,5 @@
 // Copyright 2018 Fredrik Portström <https://portstrom.com>
+// Copyright (c) 2023 Olivier ROLAND
 // This is free software distributed under the terms specified in
 // the file LICENSE at the top-level directory of this distribution.
 
@@ -24,15 +25,15 @@
 //!
 //! ```rust,no_run
 //! extern crate bzip2;
-//! extern crate parse_mediawiki_dump;
-//! use parse_mediawiki_dump::schema::Namespace;
+//! extern crate parse_mediawiki_dump_reboot;
+//! use parse_mediawiki_dump_reboot::schema::Namespace;
 //!
 //! fn main() {
 //!     let file = std::fs::File::open("example.xml.bz2").unwrap();
 //!     let file = std::io::BufReader::new(file);
 //!     let file = bzip2::bufread::BzDecoder::new(file);
 //!     let file = std::io::BufReader::new(file);
-//!     for result in parse_mediawiki_dump::parse(file) {
+//!     for result in parse_mediawiki_dump_reboot::parse(file) {
 //!         match result {
 //!             Err(error) => {
 //!                 eprintln!("Error: {}", error);
@@ -63,7 +64,7 @@
 extern crate quick_xml;
 
 pub mod schema;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{events::Event, name::ResolveResult, NsReader};
 use schema::Namespace;
 use std::io::BufRead;
 enum PageChildElement {
@@ -139,8 +140,7 @@ pub struct Page {
 /// Parser working as an iterator over pages.
 pub struct Parser<R: BufRead> {
     buffer: Vec<u8>,
-    namespace_buffer: Vec<u8>,
-    reader: Reader<R>,
+    reader: NsReader<R>,
     started: bool,
 }
 
@@ -175,22 +175,23 @@ impl<R: BufRead> Iterator for Parser<R> {
     }
 }
 
-fn match_namespace(namespace: Option<&[u8]>) -> bool {
-    match namespace {
-        None => false,
-        Some(namespace) => namespace == b"http://www.mediawiki.org/xml/export-0.10/" as &[u8],
-    }
+fn match_namespace(namespace: ResolveResult<'_>) -> bool {
+    matches!(
+        namespace,
+        ResolveResult::Bound(quick_xml::name::Namespace(
+            b"http://www.mediawiki.org/xml/export-0.10/",
+        ))
+    )
 }
 
 fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
     if !parser.started {
         loop {
             parser.buffer.clear();
-            if let (namespace, Event::Start(event)) = parser
-                .reader
-                .read_namespaced_event(&mut parser.buffer, &mut parser.namespace_buffer)?
+            if let (namespace, Event::Start(event)) =
+                parser.reader.read_resolved_event_into(&mut parser.buffer)?
             {
-                if match_namespace(namespace) && event.local_name() == b"mediawiki" {
+                if match_namespace(namespace) && event.local_name().as_ref() == b"mediawiki" {
                     break;
                 }
                 return Err(Error::Format(parser.reader.buffer_position()));
@@ -202,11 +203,12 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
         parser.buffer.clear();
         if !match parser
             .reader
-            .read_namespaced_event(&mut parser.buffer, &mut parser.namespace_buffer)?
+            //.read_namespaced_event(&mut parser.buffer, &mut parser.namespace_buffer)?
+            .read_resolved_event_into(&mut parser.buffer)?
         {
             (_, Event::End(_)) => return Ok(None),
             (namespace, Event::Start(event)) => {
-                match_namespace(namespace) && event.local_name() == b"page"
+                match_namespace(namespace) && event.local_name().as_ref() == b"page"
             }
             _ => continue,
         } {
@@ -220,10 +222,7 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
         let mut title = None;
         loop {
             parser.buffer.clear();
-            match match parser
-                .reader
-                .read_namespaced_event(&mut parser.buffer, &mut parser.namespace_buffer)?
-            {
+            match match parser.reader.read_resolved_event_into(&mut parser.buffer)? {
                 (_, Event::End(_)) => {
                     return match (namespace, text, title) {
                         (Some(namespace), Some(text), Some(title)) => Ok(Some(Page {
@@ -238,7 +237,7 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                 }
                 (namespace, Event::Start(event)) => {
                     if match_namespace(namespace) {
-                        match event.local_name() {
+                        match event.local_name().as_ref() {
                             b"ns" => PageChildElement::Ns,
                             b"revision" => PageChildElement::Revision,
                             b"title" => PageChildElement::Title,
@@ -263,17 +262,14 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                     }
                     loop {
                         parser.buffer.clear();
-                        match match parser.reader.read_namespaced_event(
-                            &mut parser.buffer,
-                            &mut parser.namespace_buffer,
-                        )? {
+                        match match parser.reader.read_resolved_event_into(&mut parser.buffer)? {
                             (_, Event::End(_)) => match text {
                                 None => return Err(Error::Format(parser.reader.buffer_position())),
                                 Some(_) => break,
                             },
                             (namespace, Event::Start(event)) => {
                                 if match_namespace(namespace) {
-                                    match event.local_name() {
+                                    match event.local_name().as_ref() {
                                         b"format" => RevisionChildElement::Format,
                                         b"model" => RevisionChildElement::Model,
                                         b"text" => RevisionChildElement::Text,
@@ -311,11 +307,10 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
 ///
 /// The stream is parsed as an XML dump exported from Mediawiki. The parser is an iterator over the pages in the dump.
 pub fn parse<R: BufRead>(source: R) -> Parser<R> {
-    let mut reader = Reader::from_reader(source);
+    let mut reader = NsReader::from_reader(source);
     reader.expand_empty_elements(true);
     Parser {
         buffer: vec![],
-        namespace_buffer: vec![],
         reader,
         started: false,
     }
@@ -331,17 +326,17 @@ fn parse_text(
     parser.buffer.clear();
     let text = match parser
         .reader
-        .read_namespaced_event(&mut parser.buffer, &mut parser.namespace_buffer)?
+        .read_resolved_event_into(&mut parser.buffer)?
         .1
     {
-        Event::Text(text) => text.unescape_and_decode(&parser.reader)?,
+        Event::Text(text) => text.unescape().unwrap().to_string(),
         Event::End { .. } => return Ok(String::new()),
         _ => return Err(Error::Format(parser.reader.buffer_position())),
     };
     parser.buffer.clear();
     if let Event::End(_) = parser
         .reader
-        .read_namespaced_event(&mut parser.buffer, &mut parser.namespace_buffer)?
+        .read_resolved_event_into(&mut parser.buffer)?
         .1
     {
         Ok(text)
@@ -356,7 +351,7 @@ fn skip_element(parser: &mut Parser<impl BufRead>) -> Result<(), quick_xml::Erro
         parser.buffer.clear();
         match parser
             .reader
-            .read_namespaced_event(&mut parser.buffer, &mut parser.namespace_buffer)?
+            .read_resolved_event_into(&mut parser.buffer)?
             .1
         {
             Event::End(_) => {
