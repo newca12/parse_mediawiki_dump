@@ -4,7 +4,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(from = "i32")]
 /// Wikipedia namespace
-///  see: https://en.wikipedia.org/wiki/Wikipedia:Namespace
+///  see: <https://en.wikipedia.org/wiki/Wikipedia:Namespace>
 pub enum Namespace {
     /// Can be used to link directly to a file, rather than to the file description page.
     Media,

@@ -1,6 +1,6 @@
 [package]
 name = "parse_mediawiki_dump_reboot"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Fredrik Portström <https://portstrom.com>","Olivier ROLAND <newca12@users.noreply.github.com>"]
 description = "Parse XML dumps exported from Mediawiki"

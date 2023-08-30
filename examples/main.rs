@@ -1,4 +1,5 @@
 // Copyright 2018 Fredrik Portström <https://portstrom.com>
+// Copyright (c) 2023 Olivier ROLAND
 // This is free software distributed under the terms specified in
 // the file LICENSE at the top-level directory of this distribution.
 
@@ -20,9 +21,9 @@ fn main() {
         Ok(file) => std::io::BufReader::new(file),
     };
     if path.ends_with(".bz2") {
-        parse(std::io::BufReader::new(bzip2::bufread::BzDecoder::new(
-            file,
-        )));
+        parse(std::io::BufReader::new(
+            bzip2::bufread::MultiBzDecoder::new(file),
+        ));
     } else {
         parse(file);
     }

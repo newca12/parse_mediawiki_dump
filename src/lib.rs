@@ -31,7 +31,7 @@
 //! fn main() {
 //!     let file = std::fs::File::open("example.xml.bz2").unwrap();
 //!     let file = std::io::BufReader::new(file);
-//!     let file = bzip2::bufread::BzDecoder::new(file);
+//!     let file = bzip2::bufread::MultiBzDecoder::new(file);
 //!     let file = std::io::BufReader::new(file);
 //!     for result in parse_mediawiki_dump_reboot::parse(file) {
 //!         match result {
