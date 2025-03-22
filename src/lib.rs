@@ -179,7 +179,8 @@ fn match_namespace(namespace: ResolveResult<'_>) -> bool {
     matches!(
         namespace,
         ResolveResult::Bound(quick_xml::name::Namespace(
-            b"http://www.mediawiki.org/xml/export-0.10/",
+            b"http://www.mediawiki.org/xml/export-0.10/"
+                | b"http://www.mediawiki.org/xml/export-0.11/",
         ))
     )
 }
