@@ -1,7 +1,7 @@
 [package]
 name = "parse_mediawiki_dump_reboot"
-version = "1.0.1"
-edition = "2021"
+version = "1.0.2"
+edition = "2024"
 authors = ["Fredrik Portström <https://portstrom.com>","Olivier ROLAND <newca12@users.noreply.github.com>"]
 description = "Parse XML dumps exported from Mediawiki"
 keywords = ["mediawiki"]
@@ -11,11 +11,11 @@ readme = "readme.md"
 repository = "https://github.com/newca12/parse_mediawiki_dump"
 
 [dependencies]
-serde = {version="1.0.188", features=["derive"]}
+serde = {version="1.0.219", features=["derive"]}
 
 [[example]]
 name = "main"
 [dependencies.quick-xml]
-version = "0.30.0"
+version = "0.37.2"
 [dev-dependencies.bzip2]
-version = "0.4.4"
+version = "0.5.2"

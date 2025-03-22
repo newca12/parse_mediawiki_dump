@@ -64,7 +64,7 @@
 extern crate quick_xml;
 
 pub mod schema;
-use quick_xml::{events::Event, name::ResolveResult, NsReader};
+use quick_xml::{NsReader, events::Event, name::ResolveResult};
 use schema::Namespace;
 use std::io::BufRead;
 enum PageChildElement {
@@ -195,7 +195,9 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                 if match_namespace(namespace) && event.local_name().as_ref() == b"mediawiki" {
                     break;
                 }
-                return Err(Error::Format(parser.reader.buffer_position()));
+                return Err(Error::Format(
+                    parser.reader.buffer_position().try_into().unwrap(),
+                ));
             }
         }
         parser.started = true;
@@ -233,8 +235,10 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                             text,
                             title,
                         })),
-                        _ => Err(Error::Format(parser.reader.buffer_position())),
-                    }
+                        _ => Err(Error::Format(
+                            parser.reader.buffer_position().try_into().unwrap(),
+                        )),
+                    };
                 }
                 (namespace, Event::Start(event)) => {
                     if match_namespace(namespace) {
@@ -251,7 +255,11 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                 _ => continue,
             } {
                 PageChildElement::Ns => match parse_text(parser, &namespace)?.parse::<i32>() {
-                    Err(_) => return Err(Error::Format(parser.reader.buffer_position())),
+                    Err(_) => {
+                        return Err(Error::Format(
+                            parser.reader.buffer_position().try_into().unwrap(),
+                        ));
+                    }
                     Ok(value) => {
                         namespace = Some(Namespace::from(value));
                         continue;
@@ -259,13 +267,19 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
                 },
                 PageChildElement::Revision => {
                     if text.is_some() {
-                        return Err(Error::NotSupported(parser.reader.buffer_position()));
+                        return Err(Error::NotSupported(
+                            parser.reader.buffer_position().try_into().unwrap(),
+                        ));
                     }
                     loop {
                         parser.buffer.clear();
                         match match parser.reader.read_resolved_event_into(&mut parser.buffer)? {
                             (_, Event::End(_)) => match text {
-                                None => return Err(Error::Format(parser.reader.buffer_position())),
+                                None => {
+                                    return Err(Error::Format(
+                                        parser.reader.buffer_position().try_into().unwrap(),
+                                    ));
+                                }
                                 Some(_) => break,
                             },
                             (namespace, Event::Start(event)) => {
@@ -309,7 +323,7 @@ fn next(parser: &mut Parser<impl BufRead>) -> Result<Option<Page>, Error> {
 /// The stream is parsed as an XML dump exported from Mediawiki. The parser is an iterator over the pages in the dump.
 pub fn parse<R: BufRead>(source: R) -> Parser<R> {
     let mut reader = NsReader::from_reader(source);
-    reader.expand_empty_elements(true);
+    reader.config_mut().expand_empty_elements = true;
     Parser {
         buffer: vec![],
         reader,
@@ -322,7 +336,9 @@ fn parse_text(
     output: &Option<impl Sized>,
 ) -> Result<String, Error> {
     if output.is_some() {
-        return Err(Error::Format(parser.reader.buffer_position()));
+        return Err(Error::Format(
+            parser.reader.buffer_position().try_into().unwrap(),
+        ));
     }
     parser.buffer.clear();
     let text = match parser
@@ -332,7 +348,11 @@ fn parse_text(
     {
         Event::Text(text) => text.unescape().unwrap().to_string(),
         Event::End { .. } => return Ok(String::new()),
-        _ => return Err(Error::Format(parser.reader.buffer_position())),
+        _ => {
+            return Err(Error::Format(
+                parser.reader.buffer_position().try_into().unwrap(),
+            ));
+        }
     };
     parser.buffer.clear();
     if let Event::End(_) = parser
@@ -342,7 +362,9 @@ fn parse_text(
     {
         Ok(text)
     } else {
-        Err(Error::Format(parser.reader.buffer_position()))
+        Err(Error::Format(
+            parser.reader.buffer_position().try_into().unwrap(),
+        ))
     }
 }
 
